@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>日常生活での計算アプリ</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=BIZ+UDGothic:wght@400;700&display=swap');
+  :root {
+    --bg: #f5f7fa; --card: #ffffff; --primary: #3a7bd5;
+    --primary-light: #e8f0fc; --primary-dark: #2a5ba5; --accent: #4a9d8f;
+    --text: #2c3e50; --text-light: #6b7c93; --border: #dce3ed;
+    --shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'BIZ UDPGothic', 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.7; min-height: 100vh;
+  }
+  .app-header {
+    background: var(--card); border-bottom: 2px solid var(--border);
+    padding: 16px 24px; display: flex; align-items: center; gap: 12px;
+  }
+  .app-header h1 { font-size: 18px; font-weight: 700; color: var(--primary); }
+  .main-layout { display: flex; gap: 0; min-height: calc(100vh - 56px); }
+  .sidebar {
+    width: 320px; min-width: 320px; background: var(--card);
+    border-right: 1px solid var(--border); padding: 20px;
+    overflow-y: auto; max-height: calc(100vh - 56px);
+  }
+  .sidebar h2 { font-size: 14px; color: var(--text-light); margin-bottom: 16px; }
+  .form-group { margin-bottom: 18px; }
+  .form-group label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+  .form-group select {
+    width: 100%; padding: 9px 12px; border: 1.5px solid var(--border);
+    border-radius: 8px; font-size: 14px; font-family: inherit; background: #fff;
+  }
+  .form-group select:focus { outline: none; border-color: var(--primary); }
+  .chip-group { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip {
+    padding: 7px 16px; border: 1.5px solid var(--border); border-radius: 20px;
+    font-size: 13px; cursor: pointer; background: #fff; font-family: inherit; color: var(--text);
+    transition: all 0.15s;
+  }
+  .chip:hover { border-color: var(--primary); }
+  .chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .btn-generate {
+    width: 100%; padding: 12px; background: var(--primary); color: #fff; border: none;
+    border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer;
+    font-family: inherit; margin-top: 8px;
+  }
+  .btn-generate:hover { background: var(--primary-dark); }
+  .btn-secondary {
+    width: 100%; padding: 10px; background: #fff; color: var(--primary);
+    border: 1.5px solid var(--primary); border-radius: 8px; font-size: 14px;
+    font-weight: 700; cursor: pointer; font-family: inherit; margin-top: 8px;
+  }
+  .btn-secondary:hover { background: var(--primary-light); }
+  .btn-copy {
+    width: 100%; padding: 10px; background: var(--accent); color: #fff; border: none;
+    border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer;
+    font-family: inherit; margin-top: 8px;
+  }
+  .btn-copy:hover { background: #3d8a7d; }
+  .btn-copy.copied { background: #6bb3a5; }
+  .sidebar-note {
+    font-size: 12px; color: var(--text-light); margin-top: 16px; padding: 10px;
+    background: var(--primary-light); border-radius: 8px; line-height: 1.6;
+  }
+  .preview-area {
+    flex: 1; padding: 24px; overflow-y: auto; max-height: calc(100vh - 56px);
+    background: var(--bg); display: flex; justify-content: center; align-items: flex-start;
+  }
+  .preview-placeholder { text-align: center; color: var(--text-light); margin-top: 120px; }
+  .preview-placeholder .icon { font-size: 48px; margin-bottom: 12px; opacity: 0.4; }
+  .preview-placeholder p { font-size: 14px; }
+
+  .print-sheet {
+    width: 210mm; min-height: 297mm; max-height: 297mm; background: #fff;
+    box-shadow: var(--shadow); padding: 14mm 17mm; position: relative; overflow: hidden;
+    font-family: 'BIZ UDGothic', 'Hiragino Kaku Gothic ProN', monospace;
+    color: #222; font-size: 12pt; line-height: 2;
+  }
+  .print-sheet .name-row { display: flex; justify-content: flex-end; align-items: center; margin-bottom: 8px; }
+  .name-row .name-label { margin-right: 4px; }
+  .name-row .name-line { display: inline-block; width: 140px; border-bottom: 1px solid #555; }
+  .print-sheet .problem-intro { margin-bottom: 8px; }
+  .print-sheet .data-table { border-collapse: collapse; margin: 6px auto 8px auto; font-size: 11pt; }
+  .print-sheet .data-table th, .print-sheet .data-table td { border: 1px solid #666; padding: 3px 10px; text-align: center; }
+  .print-sheet .data-table th { background: #e8e8e8; font-weight: 700; }
+  .print-sheet .info-box { border: 1.5px solid #666; padding: 7px 12px; margin: 6px 0; font-size: 11pt; line-height: 1.8; }
+  .print-sheet .question-block { margin: 6px 0; }
+  .print-sheet .answer-blank { display: inline-block; min-width: 90px; border-bottom: 1px solid #555; text-align: center; margin: 0 3px; padding: 0 6px; }
+  .print-sheet ruby rt { font-size: 6pt; color: #555; }
+  .print-sheet [contenteditable="true"]:hover { outline: 1px dashed var(--primary); outline-offset: 2px; }
+  .print-sheet [contenteditable="true"]:focus { outline: 2px solid var(--primary); outline-offset: 2px; background: #fffde8; }
+
+  @media print {
+    body { background: #fff !important; }
+    .app-header, .sidebar { display: none !important; }
+    .main-layout { display: block !important; }
+    .preview-area { display: block !important; padding: 0 !important; max-height: none !important; overflow: visible !important; }
+    .print-sheet {
+      box-shadow: none !important; margin: 0 !important; padding: 12mm 15mm !important;
+      width: 100% !important; min-height: auto !important; max-height: none !important;
+      position: static !important; overflow: visible !important;
+    }
+    .print-sheet [contenteditable="true"]:hover,
+    .print-sheet [contenteditable="true"]:focus { outline: none !important; background: transparent !important; }
+    @page { size: A4; margin: 0; }
+  }
+  .loading-spinner {
+    display: inline-block; width: 18px; height: 18px;
+    border: 2.5px solid rgba(255,255,255,0.3); border-top-color: #fff;
+    border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (max-width: 900px) {
+    .main-layout { flex-direction: column; }
+    .sidebar { width: 100%; min-width: auto; max-height: none; border-right: none; border-bottom: 1px solid var(--border); }
+    .preview-area { max-height: none; padding: 16px 8px; }
+    .print-sheet { width: 100%; min-height: auto; max-height: none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="app-header"><h1>日常生活での計算アプリ</h1></header>
+
+<div class="main-layout">
+  <aside class="sidebar">
+    <h2>設定</h2>
+    <div class="form-group">
+      <label>場面</label>
+      <select id="genre">
+        <option value="festival">お祭りの屋台（メニュー・おつり）</option>
+        <option value="bbq">BBQの買い出し（まとめ買い計算）</option>
+        <option value="parcel">宅配便の料金（サイズ・届け先）</option>
+        <option value="bakery">パン屋さん（セット割引・持ち帰り）</option>
+        <option value="laundry">コインランドリー（コース・時間帯）</option>
+        <option value="party">誕生日パーティー準備（材料と人数）</option>
+        <option value="fleamarket">フリーマーケット（値引き交渉）</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>問題数</label>
+      <div class="chip-group" id="countChips">
+        <button class="chip" data-val="3">3問</button>
+        <button class="chip active" data-val="4">4問</button>
+        <button class="chip" data-val="5">5問</button>
+      </div>
+    </div>
+    <button class="btn-generate" id="btnGenerate" onclick="generateProblem()">問題を作成する</button>
+    <button class="btn-secondary" id="btnPrint" onclick="window.print()" style="display:none;">印刷する</button>
+    <button class="btn-copy" id="btnCopy" onclick="copyHTML()" style="display:none;">HTMLをコピーする</button>
+    <div class="sidebar-note" id="editNote" style="display:none;">
+      プレビュー内の文字や数字をクリックすると直接編集できます。修正後に「HTMLをコピーする」を押すと、編集内容が反映されます。
+    </div>
+  </aside>
+  <main class="preview-area" id="previewArea">
+    <div class="preview-placeholder" id="placeholder">
+      <div class="icon">📝</div>
+      <p>左のパネルで場面を選んで<br>「問題を作成する」を押してね</p>
+    </div>
+  </main>
+</div>
+
+<script>
+document.querySelectorAll('.chip-group').forEach(g => {
+  g.querySelectorAll('.chip').forEach(c => {
+    c.addEventListener('click', () => {
+      g.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
+      c.classList.add('active');
+    });
+  });
+});
+function getChip(id) { const e = document.querySelector(`#${id} .chip.active`); return e ? e.dataset.val : null; }
+
+/* helpers */
+function rb(k,r){ return `<ruby>${k}<rt>${r}</rt></ruby>`; }
+function ri(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
+function shuffle(a){ const b=[...a]; for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];} return b; }
+function pickN(a,n){ return shuffle(a).slice(0,n); }
+function pickDiff(a,ex){ return pick(a.filter(x=>x.name!==ex.name)); }
+function rp(min,max){ return ri(Math.ceil(min/10),Math.floor(max/10))*10; }
+function AB(){ return `<span class="answer-blank" contenteditable="true">&nbsp;</span>`; }
+function Y(){ return rb('円','えん'); }
+function CE(s){ return `<span contenteditable="true">${s}</span>`; }
+
+/* ============ FESTIVAL (お祭りの屋台) ============ */
+function genFestival(count){
+  const stalls=[
+    {cat:'たべもの', items:[
+      {name:'たこ焼き（8'+rb('個','こ')+'）'},{name:'焼きとうもろこし'},{name:'フランクフルト'},
+      {name:'焼きそば'},{name:'わたがし'},{name:'チョコバナナ'},
+      {name:'かき氷'},{name:rb('唐揚','からあ')+'げ（5'+rb('個','こ')+'）'},{name:'じゃがバター'},
+    ]},
+    {cat:'のみもの', items:[
+      {name:'ラムネ'},{name:'りんごジュース'},{name:rb('麦茶','むぎちゃ')+'ペットボトル'},
+      {name:'コーラ'},{name:'カルピス'},{name:'スポーツドリンク'},
+    ]}
+  ];
+  const foods=pickN(stalls[0].items,4).map(f=>({...f,price:rp(150,600)}));
+  const drinks=pickN(stalls[1].items,3).map(d=>({...d,price:rp(100,300)}));
+  const festName=pick([rb('夏祭','なつまつ')+'り', rb('秋祭','あきまつ')+'り', rb('盆踊','ぼんおど')+'り'+rb('大会','たいかい'), rb('花火大会','はなびたいかい')]);
+
+  let tbl=`<table class="data-table">
+    <tr><th colspan="2">たべもの</th><th colspan="2">のみもの</th></tr>`;
+  const rows=Math.max(foods.length,drinks.length);
+  for(let i=0;i<rows;i++){
+    const f=foods[i]||{name:'',price:''};
+    const d=drinks[i]||{name:'',price:''};
+    tbl+=`<tr><td contenteditable="true">${f.name}</td><td contenteditable="true">${f.price?f.price+Y():''}</td>
+    <td contenteditable="true">${d.name}</td><td contenteditable="true">${d.price?d.price+Y():''}</td></tr>`;
+  }
+  tbl+=`</table><div style="text-align:right;font-size:10pt;color:#555;">（${rb('税込','ぜいこ')}み${rb('価格','かかく')}です。）</div>`;
+
+  const names=shuffle(['ひなたさん','そうまさん','ゆいさん','れんさん','あおいさん']);
+  const n1=names[0],n2=names[1];
+  const intro=`<div class="problem-intro" contenteditable="true">
+    ${n1}と${n2}は、${rb('地域','ちいき')}の「${festName}」に${rb('来','き')}ました。${rb('屋台','やたい')}の${rb('値段表','ねだんひょう')}を${rb('見','み')}て、${rb('問','と')}いに${rb('答','こた')}えてね。
+  </div>`;
+
+  const f1=pick(foods),f2=pickDiff(foods,f1),d1=pick(drinks),d2=pickDiff(drinks,d1);
+  const q=[];
+  q.push(`（１）${f1.name}と${d1.name}を${rb('買','か')}うと、${rb('合計','ごうけい')}はいくらですか。（　${AB()}　${Y()}）`);
+  const payT=f2.price+d2.price; const payA=Math.ceil(payT/500)*500;
+  q.push(`（２）${f2.name}と${d2.name}を${rb('買','か')}って${payA}${Y()}を${rb('出','だ')}しました。お${rb('釣','つ')}りはいくらですか。（　${AB()}　${Y()}）`);
+  const n1Cnt=ri(2,4);
+  q.push(`（３）${n1}は${f1.name}を${n1Cnt}つ${rb('買','か')}いました。いくらですか。（　${AB()}　${Y()}）`);
+  const budget=rp(800,1500);
+  q.push(`（４）${n2}は${budget}${Y()}${rb('持','も')}っています。たべもの１つとのみもの１つを${rb('買','か')}いたいとき、${rb('買','か')}える${rb('組','く')}み${rb('合','あ')}わせを${rb('一','ひと')}つ${rb('書','か')}いてね。（たべもの：${AB()}　のみもの：${AB()}）`);
+  q.push(`（５）${f1.name}と${f2.name}では、どちらが${rb('何','なん')}${Y()}${rb('高','たか')}いですか。（　${AB()}　の${rb('方','ほう')}が　${AB()}　${Y()}${rb('高','たか')}い。）`);
+  return {intro, tableHTML:tbl, qHTML:q.slice(0,count).map(x=>`<div class="question-block" contenteditable="true">${x}</div>`).join(''), extra:''};
+}
+
+/* ============ BBQ (買い出し) ============ */
+function genBBQ(count){
+  const members=ri(4,8);
+  const store=pick(['マルシェ','フレッシュ','グリーン','デイリー'])+pick(['マート','ストア','ショップ']);
+  const allItems=shuffle([
+    {name:rb('牛','ぎゅう')+rb('肉','にく')+'（100gあたり）', unit:'100g', qty:members*ri(8,12)*10, per:100},
+    {name:rb('豚','ぶた')+'バラ'+rb('肉','にく')+'（100gあたり）', unit:'100g', qty:members*ri(5,8)*10, per:100},
+    {name:rb('鶏','とり')+rb('肉','にく')+'（100gあたり）', unit:'100g', qty:members*ri(5,10)*10, per:100},
+    {name:'ウインナー（１パック'+ri(6,10)+rb('本入','ほんい')+'り）', unit:'パック', qty:ri(1,3)},
+    {name:'キャベツ', unit:rb('個','こ'), qty:ri(1,2)},
+    {name:'たまねぎ', unit:rb('個','こ'), qty:ri(2,5)},
+    {name:'ピーマン', unit:rb('袋','ふくろ'), qty:ri(1,2)},
+    {name:'とうもろこし', unit:rb('本','ほん'), qty:ri(2,6)},
+    {name:'やきそば'+rb('麺','めん'), unit:rb('袋','ふくろ'), qty:ri(2,4)},
+    {name:'バーベキューソース', unit:rb('本','ほん'), qty:1},
+    {name:'おにぎり（１パック３'+rb('個入','こい')+'り）', unit:'パック', qty:ri(2,4)},
+    {name:rb('紙','かみ')+'コップ（10'+rb('個入','こい')+'り）', unit:'パック', qty:ri(1,2)},
+    {name:rb('紙皿','かみざら')+'（10'+rb('枚入','まいい')+'り）', unit:'パック', qty:ri(1,2)},
+    {name:'お'+rb('茶','ちゃ')+'ペットボトル（2L）', unit:rb('本','ほん'), qty:ri(2,4)},
+  ]);
+  const items=allItems.slice(0,ri(6,8)).map(it=>({...it, price:rp(60,500)}));
+
+  const subtotalRaw=items.reduce((s,it)=>{
+    if(it.per) return s+(it.qty/it.per)*it.price;
+    return s+it.qty*it.price;
+  },0);
+  const subtotal=Math.round(subtotalRaw);
+  const tax=Math.round(subtotal*0.10);
+  const total=subtotal+tax;
+  const paid=Math.ceil(total/1000)*1000;
+
+  let tbl=`<div class="info-box" contenteditable="true">
+    <div style="font-weight:700;text-align:center;">${store}　お${rb('買','か')}い${rb('物','もの')}リスト</div>
+    <table style="width:100%;font-size:10pt;margin-top:4px;border-collapse:collapse;">
+      <tr style="border-bottom:1px solid #999;"><th style="text-align:left;">${rb('商品','しょうひん')}</th><th>${rb('数量','すうりょう')}</th><th style="text-align:right;">${rb('単価','たんか')}（${rb('税抜','ぜいぬ')}き）</th><th style="text-align:right;">${rb('小計','しょうけい')}</th></tr>`;
+  items.forEach(it=>{
+    let lineTotal; let qtyStr;
+    if(it.per){ lineTotal=(it.qty/it.per)*it.price; qtyStr=it.qty+'g'; }
+    else { lineTotal=it.qty*it.price; qtyStr=it.qty+it.unit; }
+    tbl+=`<tr><td style="text-align:left;">${it.name}</td><td style="text-align:center;">${qtyStr}</td><td style="text-align:right;">${it.price}${Y()}</td><td style="text-align:right;">${lineTotal}${Y()}</td></tr>`;
+  });
+  tbl+=`</table>
+    <div style="border-top:1px dashed #888;margin-top:4px;padding-top:4px;font-size:10pt;text-align:right;">
+      ${rb('税抜','ぜいぬ')}き${rb('合計','ごうけい')}：${subtotal}${Y()}　／　${rb('消費税','しょうひぜい')}（10%）：${tax}${Y()}<br>
+      <strong>${rb('税込','ぜいこ')}み${rb('合計','ごうけい')}：（☆）${Y()}</strong>　／　お${rb('支払','しはら')}い：${paid}${Y()}
+    </div>
+  </div>`;
+
+  const names=shuffle(['かずきさん','みおさん','たけるさん','はなさん','りくさん']);
+  const intro=`<div class="problem-intro" contenteditable="true">
+    ${names[0]}たち${members}${rb('人','にん')}でBBQをすることになり、${rb('買','か')}い${rb('出','だ')}しに${rb('行','い')}きました。${rb('次','つぎ')}のお${rb('買','か')}い${rb('物','もの')}リストを${rb('見','み')}て、${rb('問','と')}いに${rb('答','こた')}えてね。
+  </div>`;
+
+  const q=[];
+  q.push(`（１）${rb('税込','ぜいこ')}み${rb('合計','ごうけい')}（☆）はいくらですか。（　${AB()}　${Y()}）`);
+  q.push(`（２）${paid}${Y()}を${rb('出','だ')}したとき、お${rb('釣','つ')}りはいくらですか。（　${AB()}　${Y()}）`);
+  const perPerson=Math.round(total/members);
+  q.push(`（３）${members}${rb('人','にん')}で${rb('同','おな')}じ${rb('金額','きんがく')}ずつ${rb('割','わ')}り${rb('勘','かん')}にすると、１${rb('人','り')}あたりおよそ${rb('何','なん')}${Y()}ですか（１${Y()}${rb('未満','みまん')}は${rb('四捨五入','ししゃごにゅう')}してね）。（　${AB()}　${Y()}）`);
+  const it1=items[0],it2=items[1];
+  q.push(`（４）${it1.name}と${it2.name}の${rb('税抜','ぜいぬ')}き${rb('小計','しょうけい')}の${rb('差','さ')}はいくらですか。（　${AB()}　${Y()}）`);
+  q.push(`（５）もし${rb('参加者','さんかしゃ')}が${members+2}${rb('人','にん')}に${rb('増','ふ')}えたら、${rb('税込','ぜいこ')}み${rb('合計','ごうけい')}は${roundUp(total+800,100)}${Y()}になりました。${rb('最初','さいしょ')}の${rb('買','か')}い${rb('物','もの')}とくらべて、いくら${rb('増','ふ')}えましたか。（　${AB()}　${Y()}）`);
+  function roundUp(n,u){return Math.ceil(n/u)*u;}
+  return {intro, tableHTML:tbl, qHTML:q.slice(0,count).map(x=>`<div class="question-block" contenteditable="true">${x}</div>`).join(''), extra:''};
+}
+
+/* ============ PARCEL (宅配便) ============ */
+function genParcel(count){
+  const regions=[rb('北海道','ほっかいどう'),rb('東北','とうほく'),rb('関東','かんとう'),rb('中部','ちゅうぶ'),rb('関西','かんさい'),rb('九州','きゅうしゅう')];
+  const sizes=['S（60cm'+rb('以内','いない')+'）','M（80cm'+rb('以内','いない')+'）','L（100cm'+rb('以内','いない')+'）','LL（120cm'+rb('以内','いない')+'）'];
+  const sLabels=['S','M','L','LL'];
+  const cmLimits=[60,80,100,120];
+  // Build random price grid
+  const grid=[];
+  for(let s=0;s<4;s++){
+    const row=[];
+    const base=rp(700,900)+s*200;
+    for(let r=0;r<6;r++){
+      row.push(base + [-200,-100,0,50,100,250][r] + ri(-3,3)*10);
+    }
+    grid.push(row);
+  }
+
+  let tbl=`<div class="info-box" contenteditable="true">
+    <div style="font-weight:700;text-align:center;">${pick(['スピード','あんしん','まごころ','はこぶん'])}${rb('宅配便','たくはいびん')}　${rb('料金表','りょうきんひょう')}（${rb('税込','ぜいこ')}み）</div>
+    <div style="font-size:9pt;color:#555;text-align:center;margin-bottom:3px;">※サイズ＝たて＋よこ＋${rb('高','たか')}さの${rb('合計','ごうけい')}　／　${rb('発送元','はっそうもと')}：${rb('大阪','おおさか')}</div>
+    <table class="data-table" style="font-size:10pt;width:100%;">
+      <tr><th>サイズ</th>`;
+  regions.forEach(r=>{tbl+=`<th>${r}</th>`;});
+  tbl+=`</tr>`;
+  for(let s=0;s<4;s++){
+    tbl+=`<tr><td>${sizes[s]}</td>`;
+    grid[s].forEach(p=>{tbl+=`<td contenteditable="true">${p}${Y()}</td>`;});
+    tbl+=`</tr>`;
+  }
+  tbl+=`</table></div>`;
+
+  const names=shuffle(['はるかさん','こうきさん','さやかさん','だいちさん']);
+  const intro=`<div class="problem-intro" contenteditable="true">
+    ${names[0]}は、${rb('家族','かぞく')}への${rb('荷物','にもつ')}を${rb('送','おく')}ることにしました。${rb('次','つぎ')}の${rb('料金表','りょうきんひょう')}を${rb('見','み')}て、${rb('問','と')}いに${rb('答','こた')}えてね。
+  </div>`;
+
+  const w=ri(10,30),h=ri(10,25),d=ri(15,45);
+  const totalCm=w+h+d;
+  const sIdx=totalCm<=60?0:totalCm<=80?1:totalCm<=100?2:3;
+
+  const rIdx1=ri(0,5),rIdx2=ri(0,5);
+  let rIdx3=ri(0,5); while(rIdx3===rIdx2) rIdx3=ri(0,5);
+
+  const q=[];
+  q.push(`（１）たて${w}cm、よこ${d}cm、${rb('高','たか')}さ${h}cmの${rb('荷物','にもつ')}のサイズはどれですか。（　${AB()}　）`);
+  q.push(`（２）Lサイズの${rb('荷物','にもつ')}を${regions[rIdx1]}に${rb('送','おく')}るときの${rb('料金','りょうきん')}はいくらですか。（　${AB()}　${Y()}）`);
+  q.push(`（３）${sLabels[sIdx]}サイズの${rb('荷物','にもつ')}を${regions[rIdx2]}に${rb('送','おく')}るとき、${Math.ceil(grid[sIdx][rIdx2]/1000)*1000}${Y()}を${rb('出','だ')}すとお${rb('釣','つ')}りはいくらですか。（　${AB()}　${Y()}）`);
+  q.push(`（４）Mサイズの${rb('荷物','にもつ')}を${regions[rIdx2]}に${rb('送','おく')}るときと${regions[rIdx3]}に${rb('送','おく')}るとき、${rb('料金','りょうきん')}の${rb('差','さ')}はいくらですか。（　${AB()}　${Y()}）`);
+  const sA=ri(0,1),sB=ri(2,3),rC=ri(0,5);
+  q.push(`（５）${sLabels[sA]}サイズと${sLabels[sB]}サイズの${rb('荷物','にもつ')}を${rb('両方','りょうほう')}${regions[rC]}に${rb('送','おく')}ると、${rb('合計','ごうけい')}はいくらですか。（　${AB()}　${Y()}）`);
+  return {intro, tableHTML:tbl, qHTML:q.slice(0,count).map(x=>`<div class="question-block" contenteditable="true">${x}</div>`).join(''), extra:''};
+}
+
+/* ============ BAKERY (パン屋さん) ============ */
+function genBakery(count){
+  const shopName=pick(['こむぎ','はちみつ','ひだまり','こなこな','まるぱん'])+rb('堂','どう');
+  const breads=pickN([
+    {name:'クロワッサン'},{name:rb('食','しょく')+'パン（１'+rb('斤','きん')+'）'},{name:'メロンパン'},
+    {name:'カレーパン'},{name:'あんパン'},{name:'クリームパン'},
+    {name:'チョコデニッシュ'},{name:'ベーグル'},{name:'フランスパン'},
+    {name:'ウインナーロール'},{name:rb('塩','しお')+'パン'},
+  ],5).map(b=>({...b, price:rp(120,380)}));
+
+  const drinksAll=pickN([
+    {name:'カフェオレ'},{name:'ミルクティー'},{name:'ココア'},{name:'オレンジジュース'},
+  ],3).map(d=>({...d, price:rp(200,400)}));
+
+  const setDiscount=pick([50,80,100]);
+
+  let tbl=`<div class="info-box" contenteditable="true">
+    <div style="font-weight:700;text-align:center;">${shopName}　メニュー（${rb('税込','ぜいこ')}み）</div>
+    <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;">
+    <div style="flex:2;min-width:180px;">
+    <table class="data-table" style="width:100%;font-size:10pt;">
+      <tr><th colspan="2">パン</th></tr>`;
+  breads.forEach(b=>{tbl+=`<tr><td contenteditable="true" style="text-align:left;">${b.name}</td><td contenteditable="true">${b.price}${Y()}</td></tr>`;});
+  tbl+=`</table></div><div style="flex:1;min-width:140px;">
+    <table class="data-table" style="width:100%;font-size:10pt;">
+      <tr><th colspan="2">ドリンク</th></tr>`;
+  drinksAll.forEach(d=>{tbl+=`<tr><td contenteditable="true" style="text-align:left;">${d.name}</td><td contenteditable="true">${d.price}${Y()}</td></tr>`;});
+  tbl+=`</table></div></div>
+    <div style="font-size:10pt;margin-top:4px;padding:4px 8px;border:1px dashed #888;">
+      【セット${rb('割引','わりびき')}】パン２つ＋ドリンク１つをまとめて${rb('買','か')}うと、${rb('合計','ごうけい')}から${setDiscount}${Y()}${rb('引','び')}き！
+    </div>
+  </div>`;
+
+  const names=shuffle(['さくらさん','ゆうとさん','あかりさん','こうせいさん']);
+  const n1=names[0],n2=names[1];
+  const intro=`<div class="problem-intro" contenteditable="true">
+    ${n1}と${n2}は、パン${rb('屋','や')}さん「${shopName}」に${rb('来','き')}ました。メニューを${rb('見','み')}て、${rb('問','と')}いに${rb('答','こた')}えてね。
+  </div>`;
+
+  const b1=breads[0],b2=breads[1],b3=breads[2],d1=drinksAll[0],d2=drinksAll[1];
+  const q=[];
+  q.push(`（１）${b1.name}と${d1.name}を${rb('買','か')}うと、${rb('合計','ごうけい')}はいくらですか。（　${AB()}　${Y()}）`);
+  q.push(`（２）${b1.name}と${b2.name}と${d1.name}をセット${rb('割引','わりびき')}で${rb('買','か')}うと、いくらですか。（　${AB()}　${Y()}）`);
+  q.push(`（３）${b1.name}と${b3.name}の${rb('値段','ねだん')}を${rb('比','くら')}べると、どちらが${rb('何','なん')}${Y()}${rb('高','たか')}いですか。（　${AB()}　の${rb('方','ほう')}が　${AB()}　${Y()}${rb('高','たか')}い。）`);
+  const budget=rp(600,1200);
+  q.push(`（４）${n1}は${budget}${Y()}${rb('持','も')}っています。${rb('好','す')}きなパンを１つとドリンクを１つ${rb('買','か')}いたいとき、${rb('買','か')}える${rb('組','く')}み${rb('合','あ')}わせを${rb('一','ひと')}つ${rb('書','か')}いてね。（パン：${AB()}　ドリンク：${AB()}）`);
+  const nPiece=ri(3,5);
+  q.push(`（５）${n2}は${b2.name}を${nPiece}つ${rb('買','か')}って、${Math.ceil(b2.price*nPiece/1000)*1000}${Y()}を${rb('出','だ')}しました。お${rb('釣','つ')}りはいくらですか。（　${AB()}　${Y()}）`);
+  return {intro, tableHTML:tbl, qHTML:q.slice(0,count).map(x=>`<div class="question-block" contenteditable="true">${x}</div>`).join(''), extra:''};
+}
+
+/* ============ LAUNDRY (コインランドリー) ============ */
+function genLaundry(count){
+  const shopName=pick(['ピカリ','ぴかぴか','おひさま','せんたくん','ホワイト']);
+  const washCourses=[
+    {name:rb('標準','ひょうじゅん')+'コース（'+ri(5,7)+'kg）', time:ri(30,40)+'分', price:rp(300,500)},
+    {name:rb('大型','おおがた')+'コース（'+ri(10,15)+'kg）', time:ri(35,50)+'分', price:rp(500,800)},
+    {name:rb('毛布','もうふ')+'コース', time:ri(40,60)+'分', price:rp(600,900)},
+  ];
+  const dryCourses=[
+    {name:rb('乾燥','かんそう')+'（'+ri(20,30)+'分）', price:rp(100,200)},
+    {name:rb('乾燥','かんそう')+'（'+ri(40,60)+'分）', price:rp(200,400)},
+  ];
+  const nightDiscount=pick([50,100]);
+  const nightStart=pick([20,21]);
+
+  let tbl=`<div class="info-box" contenteditable="true">
+    <div style="font-weight:700;text-align:center;">コインランドリー「${shopName}」${rb('料金表','りょうきんひょう')}（${rb('税込','ぜいこ')}み）</div>
+    <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;">
+    <div style="flex:1;min-width:170px;">
+    <table class="data-table" style="width:100%;font-size:10pt;">
+      <tr><th colspan="3">${rb('洗濯','せんたく')}</th></tr>
+      <tr><th>コース</th><th>${rb('時間','じかん')}</th><th>${rb('料金','りょうきん')}</th></tr>`;
+  washCourses.forEach(c=>{tbl+=`<tr><td style="text-align:left;">${c.name}</td><td>${c.time}</td><td contenteditable="true">${c.price}${Y()}</td></tr>`;});
+  tbl+=`</table></div><div style="flex:1;min-width:140px;">
+    <table class="data-table" style="width:100%;font-size:10pt;">
+      <tr><th colspan="2">${rb('乾燥機','かんそうき')}</th></tr>
+      <tr><th>コース</th><th>${rb('料金','りょうきん')}</th></tr>`;
+  dryCourses.forEach(c=>{tbl+=`<tr><td style="text-align:left;">${c.name}</td><td contenteditable="true">${c.price}${Y()}</td></tr>`;});
+  tbl+=`</table></div></div>
+    <div style="font-size:10pt;margin-top:4px;padding:4px 8px;border:1px dashed #888;">
+      【${rb('夜割','よるわり')}り】${nightStart}${rb('時以降','じいこう')}のご${rb('利用','りよう')}は、${rb('全','ぜん')}コース${nightDiscount}${Y()}${rb('引','び')}き！
+    </div>
+  </div>`;
+
+  const names=shuffle(['あやさん','けんたさん','まりこさん','しょうたさん']);
+  const intro=`<div class="problem-intro" contenteditable="true">
+    ${names[0]}は、コインランドリー「${shopName}」を${rb('利用','りよう')}します。${rb('次','つぎ')}の${rb('料金表','りょうきんひょう')}を${rb('見','み')}て、${rb('問','と')}いに${rb('答','こた')}えてね。
+  </div>`;
+
+  const q=[];
+  q.push(`（１）${washCourses[0].name}で${rb('洗濯','せんたく')}し、${dryCourses[0].name}も${rb('使','つか')}うと、${rb('合計','ごうけい')}はいくらですか。（　${AB()}　${Y()}）`);
+  q.push(`（２）${washCourses[1].name}を${nightStart}${rb('時以降','じいこう')}に${rb('利用','りよう')}すると、${rb('料金','りょうきん')}はいくらですか。（　${AB()}　${Y()}）`);
+  const payA=Math.ceil((washCourses[2].price+dryCourses[1].price)/500)*500;
+  q.push(`（３）${washCourses[2].name}と${dryCourses[1].name}を${rb('使','つか')}って${payA}${Y()}を${rb('出','だ')}しました。お${rb('釣','つ')}りはいくらですか。（　${AB()}　${Y()}）`);
+  q.push(`（４）${washCourses[0].name}と${washCourses[1].name}の${rb('料金','りょうきん')}の${rb('差','さ')}はいくらですか。（　${AB()}　${Y()}）`);
+  const nTimes=ri(2,3);
+  q.push(`（５）${names[0]}は${rb('今月','こんげつ')}、${washCourses[0].name}を${nTimes}${rb('回','かい')}${rb('利用','りよう')}しました。${rb('洗濯','せんたく')}だけの${rb('合計','ごうけい')}はいくらですか。（　${AB()}　${Y()}）`);
+  return {intro, tableHTML:tbl, qHTML:q.slice(0,count).map(x=>`<div class="question-block" contenteditable="true">${x}</div>`).join(''), extra:''};
+}
+
+/* ============ PARTY (誕生日パーティー準備) ============ */
+function genParty(count){
+  const guests=ri(4,8);
+  const ingredients=[
+    {name:'ホットケーキミックス', qty:ri(1,2), unit:rb('箱','はこ'), price:rp(200,350)},
+    {name:rb('卵','たまご'), qty:ri(6,12), unit:rb('個','こ'), price:rp(15,30), note:'１'+rb('個','こ')+'あたり'},
+    {name:rb('牛乳','ぎゅうにゅう'), qty:ri(1,2), unit:rb('本','ほん'), price:rp(150,250)},
+    {name:rb('生','なま')+'クリーム', qty:ri(1,2), unit:rb('個','こ'), price:rp(250,400)},
+    {name:'いちご（１パック）', qty:ri(1,2), unit:'パック', price:rp(350,600)},
+    {name:'ジュース（1L）', qty:ri(2,4), unit:rb('本','ほん'), price:rp(100,200)},
+    {name:rb('紙','かみ')+'コップ（'+ri(8,12)+rb('個入','こい')+'り）', qty:1, unit:'パック', price:rp(100,200)},
+    {name:rb('飾','かざ')+'りつけセット', qty:1, unit:'セット', price:rp(300,500)},
+  ];
+  const used=pickN(ingredients,ri(5,7));
+
+  const totalRaw=used.reduce((s,it)=>s+it.qty*it.price,0);
+  const tax=Math.round(totalRaw*0.10);
+  const total=totalRaw+tax;
+
+  let tbl=`<div class="info-box" contenteditable="true">
+    <div style="font-weight:700;text-align:center;">${rb('誕生日','たんじょうび')}パーティー　${rb('買','か')}い${rb('物','もの')}メモ（${guests}${rb('人分','にんぶん')}）</div>
+    <table class="data-table" style="font-size:10pt;width:100%;margin-top:4px;">
+      <tr><th style="text-align:left;">${rb('材料','ざいりょう')}</th><th>${rb('数量','すうりょう')}</th><th>${rb('単価','たんか')}（${rb('税抜','ぜいぬ')}き）</th></tr>`;
+  used.forEach(it=>{
+    const un=it.note||('１'+it.unit+'あたり');
+    tbl+=`<tr><td style="text-align:left;">${it.name}</td><td style="text-align:center;" contenteditable="true">${it.qty}${it.unit}</td><td style="text-align:right;" contenteditable="true">${it.price}${Y()}（${un}）</td></tr>`;
+  });
+  tbl+=`</table>
+    <div style="font-size:10pt;text-align:right;margin-top:4px;">
+      ※${rb('消費税','しょうひぜい')}は10%です。
+    </div>
+  </div>`;
+
+  const names=shuffle(['みくさん','そうたさん','ことはさん','りくとさん']);
+  const intro=`<div class="problem-intro" contenteditable="true">
+    ${names[0]}は、${rb('友達','ともだち')}の${rb('誕生日','たんじょうび')}パーティーを${rb('準備','じゅんび')}しています。${guests}${rb('人分','にんぶん')}の${rb('材料','ざいりょう')}を${rb('買','か')}いに${rb('行','い')}きました。${rb('買','か')}い${rb('物','もの')}メモを${rb('見','み')}て、${rb('問','と')}いに${rb('答','こた')}えてね。
+  </div>`;
+
+  const q=[];
+  q.push(`（１）${used[0].name}の${rb('税抜','ぜいぬ')}き${rb('小計','しょうけい')}はいくらですか。（　${AB()}　${Y()}）`);
+  q.push(`（２）${rb('税抜','ぜいぬ')}きの${rb('合計','ごうけい')}はいくらですか。（　${AB()}　${Y()}）`);
+  q.push(`（３）${rb('消費税','しょうひぜい')}（10%）を${rb('含','ふく')}めた${rb('税込','ぜいこ')}み${rb('合計','ごうけい')}はいくらですか。（　${AB()}　${Y()}）`);
+  q.push(`（４）１${rb('人','り')}あたりの${rb('費用','ひよう')}（${rb('税込','ぜいこ')}み）は、およそ${rb('何','なん')}${Y()}ですか（１${Y()}${rb('未満','みまん')}${rb('四捨五入','ししゃごにゅう')}）。（　${AB()}　${Y()}）`);
+  const u1=used[0],u2=used[1];
+  q.push(`（５）${u1.name}と${u2.name}の${rb('税抜','ぜいぬ')}き${rb('小計','しょうけい')}の${rb('差','さ')}はいくらですか。（　${AB()}　${Y()}）`);
+  return {intro, tableHTML:tbl, qHTML:q.slice(0,count).map(x=>`<div class="question-block" contenteditable="true">${x}</div>`).join(''), extra:''};
+}
+
+/* ============ FLEAMARKET (フリーマーケット) ============ */
+function genFleamarket(count){
+  const allItems=shuffle([
+    {name:rb('絵本','えほん')},{name:rb('漫画','まんが')+'セット'},{name:'おもちゃ'},
+    {name:'ぬいぐるみ'},{name:'Tシャツ'},{name:'リュックサック'},
+    {name:'ボードゲーム'},{name:rb('水筒','すいとう')},{name:'キャップ（'+rb('帽子','ぼうし')+'）'},
+    {name:rb('腕時計','うでどけい')},{name:'スニーカー'},{name:'ポーチ'},
+  ]);
+  const items=allItems.slice(0,ri(5,7)).map(it=>({...it, originalPrice:rp(300,2000)}));
+  items.forEach(it=>{ it.salePrice=Math.round(it.originalPrice*pick([0.5,0.6,0.7,0.8])/10)*10; });
+
+  const discountRule=pick([{type:'set',desc:'２つ以上まとめ買いで',amount:pick([50,100,200])+'円引き'},{type:'pct',desc:'３つ以上まとめ買いで',amount:'合計から10%引き'}]);
+
+  let tbl=`<div class="info-box" contenteditable="true">
+    <div style="font-weight:700;text-align:center;">フリーマーケット　${rb('出品','しゅっぴん')}リスト</div>
+    <table class="data-table" style="font-size:10pt;width:100%;margin-top:4px;">
+      <tr><th style="text-align:left;">${rb('商品','しょうひん')}</th><th>${rb('元','もと')}の${rb('値段','ねだん')}</th><th>フリマ${rb('価格','かかく')}</th></tr>`;
+  items.forEach(it=>{
+    tbl+=`<tr><td style="text-align:left;" contenteditable="true">${it.name}</td><td contenteditable="true">${it.originalPrice}${Y()}</td><td contenteditable="true">${it.salePrice}${Y()}</td></tr>`;
+  });
+  tbl+=`</table>
+    <div style="font-size:10pt;margin-top:4px;padding:4px 8px;border:1px dashed #888;">
+      【まとめ${rb('割','わり')}り】${discountRule.desc}${discountRule.amount}！
+    </div>
+  </div>`;
+
+  const names=shuffle(['ここなさん','たいがさん','ひまりさん','ゆうまさん']);
+  const n1=names[0],n2=names[1];
+  const intro=`<div class="problem-intro" contenteditable="true">
+    ${n1}と${n2}は、フリーマーケットに${rb('来','き')}ました。${rb('出品','しゅっぴん')}リストを${rb('見','み')}て、${rb('問','と')}いに${rb('答','こた')}えてね。
+  </div>`;
+
+  const it1=items[0],it2=items[1],it3=items[2];
+  const q=[];
+  q.push(`（１）${it1.name}は、${rb('元','もと')}の${rb('値段','ねだん')}からいくら${rb('安','やす')}くなっていますか。（　${AB()}　${Y()}）`);
+  q.push(`（２）${it1.name}と${it2.name}のフリマ${rb('価格','かかく')}の${rb('合計','ごうけい')}はいくらですか。（　${AB()}　${Y()}）`);
+  const payAmt=Math.ceil((it2.salePrice+it3.salePrice)/500)*500;
+  q.push(`（３）${it2.name}と${it3.name}を${rb('買','か')}って${payAmt}${Y()}を${rb('出','だ')}しました。お${rb('釣','つ')}りはいくらですか。（　${AB()}　${Y()}）`);
+  const budget=rp(800,2000);
+  q.push(`（４）${n1}は${budget}${Y()}${rb('持','も')}っています。フリマ${rb('価格','かかく')}で${rb('一番','いちばん')}${rb('高','たか')}い${rb('商品','しょうひん')}と${rb('一番安','いちばんやす')}い${rb('商品','しょうひん')}を${rb('両方買','りょうほうか')}えますか。${rb('買','か')}えるなら、お${rb('釣','つ')}りはいくらですか。（　${AB()}　）`);
+  q.push(`（５）フリマ${rb('価格','かかく')}が${rb('一番安','いちばんやす')}い${rb('商品','しょうひん')}はどれですか。また、${rb('元','もと')}の${rb('値段','ねだん')}と${rb('比','くら')}べて${rb('何','なん')}${Y()}${rb('安','やす')}くなっていますか。（${rb('商品名','しょうひんめい')}：${AB()}　${rb('差額','さがく')}：${AB()}　${Y()}）`);
+  return {intro, tableHTML:tbl, qHTML:q.slice(0,count).map(x=>`<div class="question-block" contenteditable="true">${x}</div>`).join(''), extra:''};
+}
+
+/* ============ MAIN ============ */
+function generateProblem(){
+  const genre=document.getElementById('genre').value;
+  const count=parseInt(getChip('countChips')||'4');
+  const btn=document.getElementById('btnGenerate');
+  btn.innerHTML='<span class="loading-spinner"></span>作成中…'; btn.disabled=true;
+  setTimeout(()=>{
+    let r;
+    switch(genre){
+      case 'festival':r=genFestival(count);break;
+      case 'bbq':r=genBBQ(count);break;
+      case 'parcel':r=genParcel(count);break;
+      case 'bakery':r=genBakery(count);break;
+      case 'laundry':r=genLaundry(count);break;
+      case 'party':r=genParty(count);break;
+      case 'fleamarket':r=genFleamarket(count);break;
+      default:r=genFestival(count);
+    }
+    document.getElementById('previewArea').innerHTML=`<div class="print-sheet" id="printSheet">
+      <div class="name-row"><span class="name-label">${rb('名前','なまえ')}：</span><span class="name-line"></span></div>
+      ${r.intro}${r.tableHTML}${r.extra}${r.qHTML}
+    </div>`;
+    document.getElementById('btnPrint').style.display='';
+    document.getElementById('btnCopy').style.display='';
+    document.getElementById('editNote').style.display='';
+    btn.innerHTML='問題を作成する'; btn.disabled=false;
+  },300);
+}
+
+/* ============ COPY ============ */
+function copyHTML(){
+  const sheet=document.getElementById('printSheet'); if(!sheet) return;
+  const clone=sheet.cloneNode(true);
+  clone.querySelectorAll('[contenteditable]').forEach(el=>el.removeAttribute('contenteditable'));
+  const html=`<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><title>計算プリント</title>
+<style>@import url('https://fonts.googleapis.com/css2?family=BIZ+UDGothic:wght@400;700&display=swap');
+@page{size:A4;margin:12mm 15mm;}body{font-family:'BIZ UDGothic',sans-serif;color:#222;font-size:12pt;line-height:2;margin:0;padding:14mm 17mm;}
+ruby rt{font-size:6pt;color:#555;}.name-row{display:flex;justify-content:flex-end;align-items:center;margin-bottom:8px;}
+.name-label{margin-right:4px;}.name-line{display:inline-block;width:140px;border-bottom:1px solid #555;}
+.problem-intro{margin-bottom:8px;}.data-table{border-collapse:collapse;margin:6px auto 8px auto;font-size:11pt;}
+.data-table th,.data-table td{border:1px solid #666;padding:3px 10px;text-align:center;}
+.data-table th{background:#e8e8e8;font-weight:700;}.info-box{border:1.5px solid #666;padding:7px 12px;margin:6px 0;font-size:11pt;line-height:1.8;}
+.question-block{margin:6px 0;}.answer-blank{display:inline-block;min-width:90px;border-bottom:1px solid #555;text-align:center;margin:0 3px;padding:0 6px;}
+</style></head><body>${clone.innerHTML}</body></html>`;
+  navigator.clipboard.writeText(html).then(()=>{
+    const btn=document.getElementById('btnCopy');
+    btn.textContent='コピーしました！'; btn.classList.add('copied');
+    setTimeout(()=>{btn.textContent='HTMLをコピーする';btn.classList.remove('copied');},2000);
+  });
+}
+</script>
+</body>
+</html>
